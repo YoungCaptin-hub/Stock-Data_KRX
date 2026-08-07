@@ -7,7 +7,7 @@ SQLite 데이터베이스(`krx_stock_data.db`)에 누적 저장하는 파이썬 
 
 - KRX Open API(`/svc/apis/sto/stk_bydd_trd`)로 일자별 전 종목 시세 조회
 - 이미 수집된 날짜는 건너뛰고, 아직 수집되지 않은 영업일만 증분 수집
-- 종가, 시가, 거래량, 거래대금, 시가총액 등 주요 컬럼을 정제하여 SQLite에 저장
+- 종가, 시가, 고가, 저가, 거래량, 거래대금, 시가총액 등 주요 컬럼을 정제하여 SQLite에 저장
 - `(기준일자, 종목코드)` 기준 중복 저장 방지 및 조회 속도를 위한 인덱스 자동 생성
 - 최근 1년치 데이터만 유지하도록, 갱신 시 1년이 지난 과거 데이터는 자동 삭제
 
@@ -78,22 +78,23 @@ python practice.py
 
 ## 데이터베이스 스키마
 
-`daily_stock_prices` 테이블
+`daily_stock_prices` 테이블 (컬럼명은 한글로 저장되며, 괄호는 KRX API 원본 필드명입니다)
 
 | 컬럼 | 설명 |
 | --- | --- |
-| BAS_DD | 기준일자 (YYYYMMDD) |
-| ISU_CD | 종목코드 (예: 005930) |
-| ISU_NM | 종목명 (예: 삼성전자) |
-| MKT_NM | 시장 구분 (코스피/코스닥 등) |
-| SECT_TP_NM | 소속부 명칭 |
-| TDD_CLSPRC | 종가 |
-| TDD_OPNPRC | 시가 |
-| ACC_TRDVOL | 누적 거래량 |
-| ACC_TRDVAL | 누적 거래대금 |
-| MKTCAP | 시가총액 |
+| 기준일자 | 기준일자 (YYYYMMDD) (BAS_DD) |
+| 종목코드 | 종목코드 (예: 005930) (ISU_CD) |
+| 종목명 | 종목명 (예: 삼성전자) (ISU_NM) |
+| 시장명 | 시장 구분 (코스피/코스닥 등) (MKT_NM) |
+| 종가 | 종가 (TDD_CLSPRC) |
+| 시가 | 시가 (TDD_OPNPRC) |
+| 고가 | 고가 (TDD_HGPRC) |
+| 저가 | 저가 (TDD_LWPRC) |
+| 거래량 | 누적 거래량 (ACC_TRDVOL) |
+| 거래대금 | 누적 거래대금 (ACC_TRDVAL) |
+| 시가총액 | 시가총액 (MKTCAP) |
 
-Primary Key: `(BAS_DD, ISU_CD)`
+Primary Key: `(기준일자, 종목코드)`
 
 ## 프로젝트 구조
 

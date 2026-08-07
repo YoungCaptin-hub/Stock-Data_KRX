@@ -34,7 +34,7 @@ def renew_stock_data():
     # 3. 이미 수집된 날짜 조회
     saved_dates = set(
         pd.read_sql(
-        "SELECT DISTINCT BAS_DD FROM daily_stock_prices", conn)["BAS_DD"]
+        "SELECT DISTINCT 기준일자 FROM daily_stock_prices", conn)["기준일자"]
         )
 
     # 4. 중복 수집 방지
@@ -70,16 +70,20 @@ def renew_stock_data():
                 print(f" {day} 장 휴장일 또는 당일 데이터는 4시 이후 업데이트 가능")
                 continue
 
-            # 7. 필요한 컬럼만 추출 및 타입 정제
-            cols = ["BAS_DD", "ISU_CD", "ISU_NM", "MKT_NM", "SECT_TP_NM", "TDD_CLSPRC", "TDD_OPNPRC", "ACC_TRDVOL", "ACC_TRDVAL", "MKTCAP"]
+            # 7 필요한 컬럼만 추출 및 타입 정제
+            cols = ["BAS_DD", "ISU_CD", "ISU_NM", "MKT_NM", "TDD_CLSPRC", "TDD_OPNPRC", "TDD_HGPRC", "TDD_LWPRC", "ACC_TRDVOL", "ACC_TRDVAL", "MKTCAP"]
             df = df[cols].copy()
-            
-            # 8. 종가, 시가, 거래량, 거래액, 시가총액을 숫자(정수) 타입으로 변환
+
+            # 8 종가, 시가, 고가, 저가, 거래량, 거래액, 시가총액을 숫자(정수) 타입으로 변환 및 컬러명 정리
             df["TDD_CLSPRC"] = pd.to_numeric( df["TDD_CLSPRC"], errors="coerce").fillna(0)
             df["TDD_OPNPRC"] = pd.to_numeric( df["TDD_OPNPRC"], errors="coerce").fillna(0)
+            df["TDD_HGPRC"] = pd.to_numeric( df["TDD_HGPRC"], errors="coerce").fillna(0)
+            df["TDD_LWPRC"] = pd.to_numeric( df["TDD_LWPRC"], errors="coerce").fillna(0)
             df["ACC_TRDVOL"] = pd.to_numeric( df["ACC_TRDVOL"], errors="coerce").fillna(0)
             df["ACC_TRDVAL"] = pd.to_numeric( df["ACC_TRDVAL"], errors="coerce").fillna(0)
             df["MKTCAP"] = pd.to_numeric( df["MKTCAP"], errors="coerce").fillna(0)
+            df.columns = ["기준일자", "종목코드", "종목명", "시장명", "종가", "시가", "고가", "저가", "거래량", "거래대금", "시가총액"]           
+            
             
             # 9. df 데이터 sql로 저장 / multi 옵션으로 대량 Insert 속도 극대화
             df.to_sql(
@@ -119,7 +123,7 @@ def renew_stock_data():
     cutoff_date = (today - datetime.timedelta(days=365)).strftime("%Y%m%d")
 
         
-    cursor.execute("DELETE FROM daily_stock_prices WHERE BAS_DD < ? " , (cutoff_date,))
+    cursor.execute("DELETE FROM daily_stock_prices WHERE 기준일자 < ? " , (cutoff_date,))
         
     # 12. 지워진 행(Row) 수 확인
     deleted_rows = cursor.rowcount

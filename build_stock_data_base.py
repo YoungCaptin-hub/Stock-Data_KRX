@@ -26,26 +26,27 @@ def init_db(conn):
     # 1. 테이블 생성 (숫자형 데이터는 INTEGER/REAL로 정의)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS daily_stock_prices(
-      BAS_DD TEXT, -- 기준일자 (YYYYMMDD) 
-      ISU_CD TEXT, -- 단축코드 (예: 005930)
-      ISU_NM TEXT, -- 종목약명 (예: 삼성전자)
-      MKT_NM TEXT, -- 시장 명칭
-      SECT_TP_NM TEXT, -- 소속부 명칭
-      TDD_CLSPRC TEXT, -- 종가 
-      TDD_OPNPRC TEXT, -- 시가 
-      ACC_TRDVOL TEXT, -- 누적 거래량  
-      ACC_TRDVAL TEXT, -- 누적 거래대금
-      MKTCAP TEXT, -- 시가 총액 
-      PRIMARY KEY (BAS_DD, ISU_CD) -- 중복 수집 방지 (날짜 + 종목코드)
+        기준일자 TEXT,    -- BAS_DD (YYYYMMDD)
+        종목코드 TEXT,    -- ISU_CD (단축코드)
+        종목명 TEXT,      -- ISU_NM
+        시장명 TEXT,      -- MKT_NM
+        종가 INTEGER,     -- TDD_CLSPRC
+        시가 INTEGER,     -- TDD_OPNPRC
+        고가 INTEGER,     -- TDD_HGPRC
+        저가 INTEGER,     -- TDD_LWPRC
+        거래량 INTEGER,   -- ACC_TRDVOL
+        거래대금 INTEGER, -- ACC_TRDVAL
+        시가총액 INTEGER, -- MKTCAP
+        PRIMARY KEY (기준일자, 종목코드) -- 중복 수집 방지 (날짜 + 종목코드)
     )""")
 
     # 2. 날짜별/종목별 조회 속도를 높이기 위한 인덱스를 생성
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_bas_dd ON daily_stock_prices(BAS_DD)"
+        "CREATE INDEX IF NOT EXISTS idx_기준일자 ON daily_stock_prices(기준일자)"
     )
 
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_isu_cd ON daily_stock_prices(ISU_CD)"
+        "CREATE INDEX IF NOT EXISTS idx_종목코드 ON daily_stock_prices(종목코드)"
     )
 
     conn.commit()
@@ -104,15 +105,18 @@ def build_stock_database(start_date=None, end_date=None):
             df = pd.DataFrame(data["OutBlock_1"])
 
             # 7 필요한 컬럼만 추출 및 타입 정제
-            cols = ["BAS_DD", "ISU_CD", "ISU_NM", "MKT_NM", "SECT_TP_NM", "TDD_CLSPRC", "TDD_OPNPRC", "ACC_TRDVOL", "ACC_TRDVAL", "MKTCAP"]
+            cols = ["BAS_DD", "ISU_CD", "ISU_NM", "MKT_NM", "TDD_CLSPRC", "TDD_OPNPRC", "TDD_HGPRC", "TDD_LWPRC", "ACC_TRDVOL", "ACC_TRDVAL", "MKTCAP"]
             df = df[cols].copy()
 
-            # 8 종가, 시가, 거래량, 거래액, 시가총액을 숫자(정수) 타입으로 변환
+            # 8 종가, 시가, 고가, 저가, 거래량, 거래액, 시가총액을 숫자(정수) 타입으로 변환 및 컬러명 정리
             df["TDD_CLSPRC"] = pd.to_numeric( df["TDD_CLSPRC"], errors="coerce").fillna(0)
             df["TDD_OPNPRC"] = pd.to_numeric( df["TDD_OPNPRC"], errors="coerce").fillna(0)
+            df["TDD_HGPRC"] = pd.to_numeric( df["TDD_HGPRC"], errors="coerce").fillna(0)
+            df["TDD_LWPRC"] = pd.to_numeric( df["TDD_LWPRC"], errors="coerce").fillna(0)
             df["ACC_TRDVOL"] = pd.to_numeric( df["ACC_TRDVOL"], errors="coerce").fillna(0)
             df["ACC_TRDVAL"] = pd.to_numeric( df["ACC_TRDVAL"], errors="coerce").fillna(0)
             df["MKTCAP"] = pd.to_numeric( df["MKTCAP"], errors="coerce").fillna(0)
+            df.columns = ["기준일자", "종목코드", "종목명", "시장명", "종가", "시가", "고가", "저가", "거래량", "거래대금", "시가총액"]
 
             # 9 df 데이터 sql로 저장 / multi 옵션으로 대량 Insert 속도 극대화
             df.to_sql(
